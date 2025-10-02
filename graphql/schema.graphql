@@ -1,0 +1,71 @@
+scalar Time
+
+
+# Account represents a user account in the system.
+type Account {
+  id: String!
+  username: String!
+  orders : [Order!]!
+}
+
+# Product represents an item available for purchase.
+type Product {
+  id: String!
+  name: String!
+  description: String
+  price: Float!
+}
+
+
+# Order represents a purchase made by an account.
+type Order {
+  id: String!
+  createdAt: Time!
+  totalAmount: Float!
+  products: [OrderedProduct!]!
+}
+
+type OrderedProduct {
+	id: String!
+	name: String
+	price: Float!
+	description: String
+	quantity: Int!
+}
+
+# pagination info
+input PaginationInput {
+	skip: Int
+	take: Int
+}
+
+input AccountInput {
+	username: String!
+}
+
+input ProductInput {
+	name: String!
+	description: String
+	price: Float!
+}
+
+input OrderedProductInput {
+	id: String!
+	quantity: Int!
+}
+
+input OrderInput {
+	accountId: String!
+	products: [OrderedProductInput!]!
+}
+
+type Mutation {
+  createAccount(account: AccountInput!): Account!
+  createProduct(product: ProductInput!): Product!
+  createOrder(order: OrderInput!): Order!
+}
+
+type Query {
+  accounts(pagination: PaginationInput, id: String): [Account!]!
+  products(pagination: PaginationInput, query: String, id: String): [Product!]!
+}
