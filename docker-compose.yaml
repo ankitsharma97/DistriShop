@@ -1,9 +1,125 @@
 version: '3.8'
+
+networks:
+  microservice_network:
+    driver: bridge
+
 services:
-  account:
-  catalog:
-  order:
-  graphql:
+  # Account Service Database
   account_db:
-  catalog_db:
+    build:
+      context: .
+      dockerfile: ./account/db.dockerfile
+    environment:
+      POSTGRES_DB: account
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    networks:
+      - microservice_network
+    volumes:
+      - account_db_data:/var/lib/postgresql/data
+
+  # Account Service
+  account:
+    build:
+      context: .
+      dockerfile: ./account/app.dockerfile
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@account_db:5432/account?sslmode=disable
+    ports:
+      - "8080:8080"
+    depends_on:
+      - account_db
+    networks:
+      - microservice_network
+    restart: on-failure
+
+  # Order Service Database
   order_db:
+    build:
+      context: .
+      dockerfile: ./order/db.dockerfile
+    environment:
+      POSTGRES_DB: order
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    networks:
+      - microservice_network
+    volumes:
+      - order_db_data:/var/lib/postgresql/data
+
+  # Order Service
+  order:
+    build:
+      context: .
+      dockerfile: ./order/app.dockerfile
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@order_db:5432/order?sslmode=disable
+      ACCOUNT_SERVICE_URL: account:8080
+      CATALOG_SERVICE_URL: catalog:8080
+    ports:
+      - "8082:8080"
+    depends_on:
+      - order_db
+      - account
+      - catalog
+    networks:
+      - microservice_network
+    restart: on-failure
+
+  # Catalog Service Database (Elasticsearch)
+  catalog_db:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.9.0
+    environment:
+      - discovery.type=single-node
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    networks:
+      - microservice_network
+    volumes:
+      - catalog_db_data:/usr/share/elasticsearch/data
+
+  # Catalog Service
+  catalog:
+    build:
+      context: .
+      dockerfile: ./catalog/app.dockerfile
+    environment:
+      DATABASE_URL: http://catalog_db:9200
+    ports:
+      - "8081:8080"
+    depends_on:
+      - catalog_db
+    networks:
+      - microservice_network
+    restart: on-failure
+
+  # GraphQL Gateway
+  graphql:
+    build:
+      context: .
+      dockerfile: ./graphql/app.dockerfile
+    environment:
+      ACCOUNT_URL: account:8080
+      CATALOG_URL: catalog:8080
+      ORDER_URL: order:8080
+    ports:
+      - "8083:8080"
+    depends_on:
+      - account
+      - catalog
+      - order
+    networks:
+      - microservice_network
+    restart: on-failure
+
+volumes:
+  account_db_data:
+  catalog_db_data:
+  order_db_data:

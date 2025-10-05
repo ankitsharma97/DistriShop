@@ -1,11 +1,11 @@
 package catalog
 
-
 import (
 	"context"
 	pb "microservice/catalog/pb"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 type Client struct {
@@ -13,9 +13,8 @@ type Client struct {
 	service pb.CatalogServiceClient
 }
 
-
 func NewClient(url string) (*Client, error) {
-	conn, err := grpc.Dial(url, grpc.WithInsecure())
+	conn, err := grpc.Dial(url, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return nil, err
 	}

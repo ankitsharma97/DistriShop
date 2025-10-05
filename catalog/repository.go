@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"log"
 	elastic "gopkg.in/olivere/elastic.v5"
 )
 

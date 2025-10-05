@@ -2,16 +2,21 @@ package catalog
 
 import (
 	"context"
-	"errors"
+	"fmt"
+	"net"
+
+	pb "microservice/catalog/pb"
+
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 )
 
-
-type grppcServer struct {
+type grpcServer struct {
 	pb.UnimplementedCatalogServiceServer
 	service Service
 }
 
-// ListenGRPC starts a gRPC server for the Account service.
+// ListenGRPC starts a gRPC server for the Catalog service.
 func ListenGRPC(service Service, port int) error {
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
@@ -22,7 +27,6 @@ func ListenGRPC(service Service, port int) error {
 	reflection.Register(s)
 	return s.Serve(lis)
 }
-
 
 func (s *grpcServer) PostProduct(ctx context.Context, req *pb.PostProductRequest) (*pb.PostProductResponse, error) {
 	product, err := s.service.PostProduct(ctx, req.Name, req.Description, req.Price)
@@ -44,22 +48,15 @@ func (s *grpcServer) GetProducts(ctx context.Context, req *pb.GetProductsRequest
 	var products []*Product
 	var err error
 
-	// Determine which service method to call based on the request parameters
-	if req.query != "" {
+	if req.Query != "" { // search
 		products, err = s.service.SearchProducts(ctx, req.Query, int(req.Skip), int(req.Take))
-		if err != nil {
-			return nil, err
-		}
-	} else if len(req.Ids) > 0 {
+	} else if len(req.Ids) > 0 { // by IDs
 		products, err = s.service.GetProductByIDs(ctx, req.Ids)
-		if err != nil {
-			return nil, err
-		}
-	} else {
+	} else { // pagination only
 		products, err = s.service.GetProducts(ctx, int(req.Skip), int(req.Take))
-		if err != nil {
-			return nil, err
-		}
+	}
+	if err != nil {
+		return nil, err
 	}
 
 	resp := make([]*pb.Product, 0, len(products))
@@ -68,4 +65,3 @@ func (s *grpcServer) GetProducts(ctx context.Context, req *pb.GetProductsRequest
 	}
 	return &pb.GetProductsResponse{Products: resp}, nil
 }
- 

@@ -1,9 +1,10 @@
 package catalog
 
 import (
-	"github.com/segmentio/ksuid"
 	"context"
-	
+	"errors"
+
+	"github.com/segmentio/ksuid"
 )
 
 type Service interface {
